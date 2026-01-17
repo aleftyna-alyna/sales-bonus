@@ -22,13 +22,13 @@ function calculateBonusByProfit(index, total, seller) {
   // Расчет бонуса от позиции в рейтинге
   const { profit } = seller;
   if (index === 0) {
-    return 15;
+    return 150;
   } else if (index === 1 || index === 2) {
-    return 10;
+    return 100;
   } else if (index === total - 1) {
     return 0;
   } else {
-    return 5;
+    return 50;
   }
 }
 
