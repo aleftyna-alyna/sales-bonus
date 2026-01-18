@@ -6,9 +6,9 @@
  */
 function calculateSimpleRevenue(purchase, _product) {
   // Расчет выручки от операции
-  const { sale_price, quantity } = purchase;
-  const discount = 1 - purchase.discount / 100;
-  return sale_price * quantity * discount;
+  const { discount, sale_price, quantity } = purchase;
+  const discountCoef = 1 - discount / 100;
+  return sale_price * quantity * discountCoef;
 }
 
 /**
@@ -61,23 +61,20 @@ function analyzeSalesData(data, options) {
   // Подготовка промежуточных данных для сбора статистики
   const sellerStats = data.sellers.map((seller) => ({
     id: seller.id,
-    first_name: seller.first_name,
-    last_name: seller.last_name,
-    start_date: seller.start_date,
-    position: seller.position,
+    name: `${seller.first_name} ${seller.last_name}`,
     sales_count: 0,
     revenue: 0,
     profit: 0,
     products_sold: [],
-    top_products: {}
+    top_products: {},
   }));
 
   // Индексация продавцов и товаров для быстрого доступа
   const sellerIndex = Object.fromEntries(
-    sellerStats.map((item) => [item.id, item])
+    sellerStats.map((item) => [item.id, item]),
   );
   const productIndex = Object.fromEntries(
-    data.products.map((item) => [item.sku, item])
+    data.products.map((item) => [item.sku, item]),
   );
   // Расчет выручки и прибыли для каждого продавца
   data.purchase_records.forEach((record) => {
@@ -96,14 +93,14 @@ function analyzeSalesData(data, options) {
       // Посчитать выручку (revenue) с учётом скидки через функцию calculateRevenue
       const revenue = calculateRevenue(item, product);
       // Посчитать прибыль: выручка минус себестоимость
-      const profit = revenue - cost;
+      const productProfit = revenue - cost;
       // Увеличить общую накопленную прибыль (profit) у продавца
-      seller.profit += profit;
+      seller.profit += productProfit;
       // Учёт количества проданных товаров
       if (!seller.products_sold[item.sku]) {
         seller.products_sold[item.sku] = 0;
       }
-      seller.products_sold[item.sku] += 1;
+      seller.products_sold[item.sku] += item.quantity;
       // По артикулу товара увеличить его проданное количество у продавца
     });
   });
@@ -116,7 +113,7 @@ function analyzeSalesData(data, options) {
   sellerStats.forEach((seller, index) => {
     seller.bonus = calculateBonus(index, sellerStats.length, seller);
     seller.top_products = Object.entries(seller.products_sold)
-      .map(([sku, quantity]) => ({sku, quantity}))
+      .map(([sku, quantity]) => ({ sku, quantity }))
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 10);
   });
@@ -126,7 +123,7 @@ function analyzeSalesData(data, options) {
   // Формируем итоговый отчет
   const finalReport = sellerStats.map((seller) => ({
     seller_id: seller.id, // Строка, идентификатор
-    name: seller.first_name + " " + seller.last_name, // Строка, имя, фамилия
+    name: seller.name, // Строка, имя, фамилия
     // Приводим к числу с двумя знаками после точки
     revenue: +seller.revenue.toFixed(2),
     profit: +seller.profit.toFixed(2),
